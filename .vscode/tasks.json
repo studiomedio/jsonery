@@ -4,10 +4,24 @@
     {
       "type": "npm",
       "script": "watch",
-      "problemMatcher": "$esbuild-watch",
       "isBackground": true,
       "presentation": { "reveal": "never" },
-      "group": { "kind": "build", "isDefault": true }
+      "group": { "kind": "build", "isDefault": true },
+      // Inline matcher (no "esbuild Problem Matchers" extension needed); pairs with watchReporter in esbuild.js.
+      "problemMatcher": {
+        "owner": "esbuild",
+        "source": "esbuild",
+        "fileLocation": "relative",
+        "pattern": [
+          { "regexp": "^✘ \\[ERROR\\] (.*)$", "message": 1 },
+          { "regexp": "^\\s+(.+):(\\d+):(\\d+):$", "file": 1, "line": 2, "column": 3 }
+        ],
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "^\\[watch\\] build started",
+          "endsPattern": "^\\[watch\\] build finished"
+        }
+      }
     }
   ]
 }
