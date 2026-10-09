@@ -1,0 +1,15 @@
+.vscode/**
+src/**
+test/**
+out-test/**
+node_modules/**
+esbuild.js
+tsconfig.json
+PUBLISHING.md
+package-lock.json
+*.code-workspace
+**/*.map
+**/*.ts
+**/.DS_Store
+.gitignore
+.vscode-test/**

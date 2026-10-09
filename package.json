@@ -1,0 +1,282 @@
+{
+  "name": "jsonery",
+  "displayName": "Jsonery",
+  "description": "Reliable JSON toolkit: format, minify, change indentation, fold to level, sort keys, JSON path and escape/unescape — comments and big numbers stay intact.",
+  "version": "0.1.0",
+  "publisher": "studiomedio",
+  "license": "MIT",
+  "pricing": "Free",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/studiomedio/jsonery"
+  },
+  "bugs": {
+    "url": "https://github.com/studiomedio/jsonery/issues"
+  },
+  "engines": {
+    "vscode": "^1.97.0"
+  },
+  "categories": [
+    "Formatters",
+    "Other"
+  ],
+  "keywords": [
+    "json",
+    "jsonc",
+    "format",
+    "minify",
+    "sort",
+    "fold",
+    "jsonpath",
+    "indent",
+    "escape",
+    "beautify"
+  ],
+  "main": "./dist/extension.js",
+  "browser": "./dist/web/extension.js",
+  "activationEvents": [
+    "onLanguage:json",
+    "onLanguage:jsonc",
+    "onLanguage:jsonl"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "jsonery.format",
+        "title": "Format",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.minify",
+        "title": "Minify",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.changeIndentation",
+        "title": "Change Indentation…",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.sortKeys",
+        "title": "Sort Keys (Recursive)",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.sortKeysTopLevel",
+        "title": "Sort Keys (Top Level)",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.foldToLevel",
+        "title": "Fold to Level…",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.foldArrays",
+        "title": "Fold All Arrays",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.foldObjects",
+        "title": "Fold All Objects",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.unfoldAll",
+        "title": "Unfold All",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.copyPath",
+        "title": "Copy JSON Path",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.escape",
+        "title": "Escape as JSON String",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.unescape",
+        "title": "Unescape JSON String",
+        "category": "Jsonery"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "jsonery.editorContext",
+        "label": "Jsonery"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "jsonery.editorContext",
+          "group": "1_modification@9",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/ || editorHasSelection"
+        }
+      ],
+      "jsonery.editorContext": [
+        {
+          "command": "jsonery.format",
+          "group": "1_format@1"
+        },
+        {
+          "command": "jsonery.minify",
+          "group": "1_format@2"
+        },
+        {
+          "command": "jsonery.changeIndentation",
+          "group": "1_format@3",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.sortKeys",
+          "group": "2_sort@1"
+        },
+        {
+          "command": "jsonery.sortKeysTopLevel",
+          "group": "2_sort@2"
+        },
+        {
+          "command": "jsonery.foldToLevel",
+          "group": "3_fold@1",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.foldArrays",
+          "group": "3_fold@2",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.foldObjects",
+          "group": "3_fold@3",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.unfoldAll",
+          "group": "3_fold@4",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.copyPath",
+          "group": "5_path@1",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.escape",
+          "group": "4_string@1"
+        },
+        {
+          "command": "jsonery.unescape",
+          "group": "4_string@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "jsonery.format",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "jsonery.minify",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "jsonery.changeIndentation",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.sortKeys",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "jsonery.sortKeysTopLevel",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "jsonery.foldToLevel",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.foldArrays",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.foldObjects",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.unfoldAll",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.copyPath",
+          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+        },
+        {
+          "command": "jsonery.escape",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "jsonery.unescape",
+          "when": "editorIsOpen"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Jsonery",
+      "properties": {
+        "jsonery.formatOnPaste": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Format JSON objects and arrays pasted into JSON/JSONC files, indented to fit where they land. The paste widget can switch back to plain text. Regardless of this setting, **Paste As…** always offers *Insert formatted JSON*."
+        },
+        "jsonery.path.style": {
+          "type": "string",
+          "enum": [
+            "jsonpath",
+            "jq",
+            "js"
+          ],
+          "enumDescriptions": [
+            "$.users[0].name",
+            ".users[0].name",
+            "users[0].name"
+          ],
+          "default": "jsonpath",
+          "description": "Style of the JSON path shown in the status bar and copied by \"Copy JSON Path\"."
+        },
+        "jsonery.statusBar.path": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the JSON path of the cursor in the status bar (click to copy)."
+        },
+        "jsonery.statusBar.indentation": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the indentation of JSON files in the status bar (click to change and re-indent)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node esbuild.js --test && node --test \"out-test/*.test.js\"",
+    "test:integration": "node esbuild.js && node esbuild.js --integration && node test/integration/run.js",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/vscode": "~1.97.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.25.12",
+    "typescript": "^5.9.3"
+  }
+}
