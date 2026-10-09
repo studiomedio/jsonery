@@ -2,7 +2,7 @@
   "name": "jsonery",
   "displayName": "Jsonery",
   "description": "Reliable JSON toolkit: format, minify, change indentation, fold to level, sort keys, JSON path and escape/unescape — comments and big numbers stay intact.",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "publisher": "studiomedio",
   "license": "MIT",
   "pricing": "Free",
