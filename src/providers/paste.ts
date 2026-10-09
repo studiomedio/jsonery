@@ -28,7 +28,7 @@ export class JsonPasteProvider implements vscode.DocumentPasteEditProvider {
     if (!isContainer(pasted)) return undefined
 
     const editor = vscode.window.visibleTextEditors.find((e) => e.document === document)
-    const settings = editor ? settingsFor(editor) : documentSettings(document, { tabSize: 2, insertSpaces: true })
+    const settings = editor ? await settingsFor(editor) : await documentSettings(document, { tabSize: 2, insertSpaces: true })
     const formatted = formatText(pasted.trim(), { ...settings, insertFinalNewline: false })
     if (!formatted.ok) return undefined
 

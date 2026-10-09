@@ -1,5 +1,7 @@
-import { SyntaxKind, applyEdits, createScanner, format } from 'jsonc-parser'
-import type { EditsResult, FormatScope, FormatSettings, JsonResult } from '../types/json'
+import { SyntaxKind, createScanner, format } from 'jsonc-parser'
+import type { EditsResult, FormatScope, FormatSettings, JsonResult, Span } from '../types/json'
+import { compactContainers } from './compact'
+import { applyOffsetEdits, minimalEdit } from './edits'
 import { parse } from './parse'
 
 // Everything here edits the source text through jsonc-parser instead of a JSON.parse/stringify
@@ -10,21 +12,31 @@ import { parse } from './parse'
 export function formatEdits(text: string, settings: FormatSettings, scope: FormatScope = {}): EditsResult {
   const { issue } = parse(text)
   if (issue) return { ok: false, issue }
+  const keepLines = scope.keepLines ?? settings.style === 'preserve'
   const edits = format(text, scope.range, {
     tabSize: settings.tabSize,
     insertSpaces: settings.insertSpaces,
     eol: settings.eol,
     insertFinalNewline: settings.insertFinalNewline,
-    keepLines: scope.keepLines ?? false,
+    keepLines,
   })
-  return { ok: true, edits }
+  if (settings.style !== 'smart' || keepLines) return { ok: true, edits }
+
+  // Smart: expand everything first, then collapse what fits on one line (inside the range, if any).
+  const expanded = applyOffsetEdits(text, edits)
+  let within: Span | undefined
+  if (scope.range) {
+    const growth = edits.reduce((sum, e) => sum + e.content.length - e.length, 0)
+    within = { start: scope.range.offset, end: scope.range.offset + scope.range.length + growth }
+  }
+  return { ok: true, edits: minimalEdit(text, compactContainers(expanded, settings.maxLineWidth, within)) }
 }
 
 /** Pretty-print a standalone piece of JSON. */
-export function formatText(text: string, settings: FormatSettings, keepLines = false): JsonResult {
+export function formatText(text: string, settings: FormatSettings, keepLines?: boolean): JsonResult {
   const result = formatEdits(text, settings, { keepLines })
   if (!result.ok) return result
-  return { ok: true, text: applyEdits(text, result.edits) }
+  return { ok: true, text: applyOffsetEdits(text, result.edits) }
 }
 
 /** Remove all insignificant whitespace and comments. Refuses invalid JSON. */

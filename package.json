@@ -30,7 +30,11 @@
     "jsonpath",
     "indent",
     "escape",
-    "beautify"
+    "beautify",
+    "repair",
+    "jsonl",
+    "ndjson",
+    "editorconfig"
   ],
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -54,6 +58,11 @@
       {
         "command": "jsonery.minify",
         "title": "Minify",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.repair",
+        "title": "Repair JSON",
         "category": "Jsonery"
       },
       {
@@ -105,6 +114,21 @@
         "command": "jsonery.unescape",
         "title": "Unescape JSON String",
         "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.linesToArray",
+        "title": "Convert JSON Lines to JSON Array",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.arrayToLines",
+        "title": "Convert JSON Array to JSON Lines",
+        "category": "Jsonery"
+      },
+      {
+        "command": "jsonery.openLineAsJson",
+        "title": "Open Line as Formatted JSON",
+        "category": "Jsonery"
       }
     ],
     "submenus": [
@@ -131,9 +155,13 @@
           "group": "1_format@2"
         },
         {
+          "command": "jsonery.repair",
+          "group": "1_format@3"
+        },
+        {
           "command": "jsonery.changeIndentation",
-          "group": "1_format@3",
-          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+          "group": "1_format@4",
+          "when": "editorLangId =~ /^(json|jsonc)$/"
         },
         {
           "command": "jsonery.sortKeys",
@@ -146,26 +174,26 @@
         {
           "command": "jsonery.foldToLevel",
           "group": "3_fold@1",
-          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+          "when": "editorLangId =~ /^(json|jsonc)$/"
         },
         {
           "command": "jsonery.foldArrays",
           "group": "3_fold@2",
-          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+          "when": "editorLangId =~ /^(json|jsonc)$/"
         },
         {
           "command": "jsonery.foldObjects",
           "group": "3_fold@3",
-          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+          "when": "editorLangId =~ /^(json|jsonc)$/"
         },
         {
           "command": "jsonery.unfoldAll",
           "group": "3_fold@4",
-          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+          "when": "editorLangId =~ /^(json|jsonc)$/"
         },
         {
           "command": "jsonery.copyPath",
-          "group": "5_path@1",
+          "group": "6_path@1",
           "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
         },
         {
@@ -175,6 +203,21 @@
         {
           "command": "jsonery.unescape",
           "group": "4_string@2"
+        },
+        {
+          "command": "jsonery.linesToArray",
+          "group": "5_lines@1",
+          "when": "editorLangId == jsonl"
+        },
+        {
+          "command": "jsonery.arrayToLines",
+          "group": "5_lines@2",
+          "when": "editorLangId =~ /^(json|jsonc)$/"
+        },
+        {
+          "command": "jsonery.openLineAsJson",
+          "group": "5_lines@3",
+          "when": "editorLangId == jsonl"
         }
       ],
       "commandPalette": [
@@ -187,8 +230,12 @@
           "when": "editorIsOpen"
         },
         {
+          "command": "jsonery.repair",
+          "when": "editorIsOpen"
+        },
+        {
           "command": "jsonery.changeIndentation",
-          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+          "when": "editorLangId =~ /^(json|jsonc)$/"
         },
         {
           "command": "jsonery.sortKeys",
@@ -200,19 +247,19 @@
         },
         {
           "command": "jsonery.foldToLevel",
-          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+          "when": "editorLangId =~ /^(json|jsonc)$/"
         },
         {
           "command": "jsonery.foldArrays",
-          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+          "when": "editorLangId =~ /^(json|jsonc)$/"
         },
         {
           "command": "jsonery.foldObjects",
-          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+          "when": "editorLangId =~ /^(json|jsonc)$/"
         },
         {
           "command": "jsonery.unfoldAll",
-          "when": "editorLangId =~ /^(json|jsonc|jsonl)$/"
+          "when": "editorLangId =~ /^(json|jsonc)$/"
         },
         {
           "command": "jsonery.copyPath",
@@ -225,16 +272,57 @@
         {
           "command": "jsonery.unescape",
           "when": "editorIsOpen"
+        },
+        {
+          "command": "jsonery.linesToArray",
+          "when": "editorLangId == jsonl"
+        },
+        {
+          "command": "jsonery.arrayToLines",
+          "when": "editorLangId =~ /^(json|jsonc)$/"
+        },
+        {
+          "command": "jsonery.openLineAsJson",
+          "when": "editorLangId == jsonl"
         }
       ]
     },
     "configuration": {
       "title": "Jsonery",
       "properties": {
+        "jsonery.format.style": {
+          "type": "string",
+          "enum": [
+            "expanded",
+            "smart",
+            "preserve"
+          ],
+          "enumDescriptions": [
+            "Every non-empty array and object on several lines (like VS Code's built-in formatter).",
+            "Arrays and objects that fit within `#jsonery.format.maxLineWidth#` stay on one line.",
+            "Keep existing line breaks; fix only indentation and spacing."
+          ],
+          "default": "expanded",
+          "scope": "language-overridable",
+          "markdownDescription": "Layout used by **Format**, the formatter, format on paste and unescape."
+        },
+        "jsonery.format.maxLineWidth": {
+          "type": "integer",
+          "default": 80,
+          "minimum": 20,
+          "scope": "language-overridable",
+          "markdownDescription": "Line width for the `smart` format style. `max_line_length` in `.editorconfig` takes precedence."
+        },
         "jsonery.formatOnPaste": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Format JSON objects and arrays pasted into JSON/JSONC files, indented to fit where they land. The paste widget can switch back to plain text. Regardless of this setting, **Paste As…** always offers *Insert formatted JSON*."
+          "markdownDescription": "Format JSON objects and arrays pasted into JSON/JSONC files, indented to fit where they land. The paste widget can switch back to plain text. Regardless of this setting, **Paste As…** always offers *Insert formatted JSON*.",
+          "scope": "language-overridable"
+        },
+        "jsonery.editorconfig": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Read `indent_style`, `indent_size`, `tab_width`, `insert_final_newline` and `max_line_length` from `.editorconfig` files."
         },
         "jsonery.path.style": {
           "type": "string",

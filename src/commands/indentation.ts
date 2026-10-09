@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import { formatEdits } from '../core/format'
-import { activeEditor, applyEdits, notify, reportIssue, settingsFor, targetOf, toTextEdits } from '../editor'
+import { activeEditor, applyEdits, isJsonLines, notify, reportIssue, settingsFor, targetOf, toTextEdits, withProgress } from '../editor'
 import type { IndentationArg, IndentationChoice } from '../types/editor'
 import type { Indentation } from '../types/json'
 
@@ -8,14 +8,18 @@ import type { Indentation } from '../types/json'
 export async function changeIndentation(arg?: IndentationArg): Promise<void> {
   const editor = activeEditor()
   if (!editor) return
-  const current = settingsFor(editor)
+  if (isJsonLines(editor.document)) return notify('JSON Lines records are single-line — there is no indentation to change')
+  // An explicit choice wins over .editorconfig and the detected indentation.
+  const current = await settingsFor(editor)
   const indentation = arg === undefined ? await pick(current) : fromArg(arg, current)
   if (!indentation) return
 
   const target = { ...targetOf(editor), isSelection: false }
   // A one-line (minified) document has no lines to keep — expand it instead.
   const keepLines = /\n/.test(target.text.trim())
-  const result = formatEdits(target.text, { ...current, ...indentation }, { keepLines })
+  const result = await withProgress(editor.document, 'Re-indenting', async () =>
+    formatEdits(target.text, { ...current, ...indentation }, { keepLines }),
+  )
   if (!result.ok) return reportIssue(editor, result.issue, target)
 
   editor.options = {

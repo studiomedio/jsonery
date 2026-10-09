@@ -1,7 +1,9 @@
 import * as vscode from 'vscode'
 import { currentPath } from './commands/path'
 import { describe } from './commands/indentation'
-import { JSON_LANGUAGES, config, settingsFor } from './editor'
+import { indentationFrom } from './core/editorconfig'
+import { JSON_LANGUAGES, config, editorIndentation, isJsonLines } from './editor'
+import { editorConfig } from './editorconfig'
 
 // Live path tracking re-scans the document up to the cursor; skip it on very large files.
 const MAX_LIVE_LENGTH = 5_000_000
@@ -20,55 +22,62 @@ export class StatusBar implements vscode.Disposable {
     this.path.command = 'jsonery.copyPath'
     this.indent.name = 'Jsonery: Indentation'
     this.indent.command = 'jsonery.changeIndentation'
-    this.indent.tooltip = 'Jsonery: change indentation and re-indent the document'
 
+    const isActive = (editor: vscode.TextEditor) => editor === vscode.window.activeTextEditor
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor(() => this.update()),
-      vscode.window.onDidChangeTextEditorSelection((e) => e.textEditor === vscode.window.activeTextEditor && this.schedule()),
-      vscode.window.onDidChangeTextEditorOptions((e) => e.textEditor === vscode.window.activeTextEditor && this.update()),
-      vscode.workspace.onDidChangeTextDocument((e) => e.document === vscode.window.activeTextEditor?.document && this.schedule()),
+      vscode.window.onDidChangeTextEditorSelection((e) => isActive(e.textEditor) && this.schedulePath()),
+      vscode.window.onDidChangeTextEditorOptions((e) => isActive(e.textEditor) && this.updateIndentation()),
+      vscode.workspace.onDidChangeTextDocument((e) => e.document === vscode.window.activeTextEditor?.document && this.schedulePath()),
       vscode.workspace.onDidOpenTextDocument(() => this.update()),
       vscode.workspace.onDidChangeConfiguration((e) => e.affectsConfiguration('jsonery') && this.update()),
     )
     this.update()
   }
 
-  private schedule(): void {
-    clearTimeout(this.timer)
-    this.timer = setTimeout(() => this.update(), DEBOUNCE_MS)
+  update(): void {
+    this.updatePath()
+    void this.updateIndentation()
   }
 
-  update(): void {
+  private schedulePath(): void {
+    clearTimeout(this.timer)
+    this.timer = setTimeout(() => this.updatePath(), DEBOUNCE_MS)
+  }
+
+  private jsonEditor(): vscode.TextEditor | undefined {
     const editor = vscode.window.activeTextEditor
-    if (!editor || !JSON_LANGUAGES.includes(editor.document.languageId)) {
-      this.path.hide()
-      this.indent.hide()
-      return
-    }
-    const settings = config(editor.document)
+    return editor && JSON_LANGUAGES.includes(editor.document.languageId) ? editor : undefined
+  }
 
-    if (settings.get('statusBar.indentation', true)) {
-      this.indent.text = `$(symbol-namespace) ${describe(settingsFor(editor))}`
-      this.indent.show()
+  private updatePath(): void {
+    const editor = this.jsonEditor()
+    if (!editor || !config(editor.document).get('statusBar.path', true)) return this.path.hide()
+    const { document } = editor
+    const length = document.offsetAt(document.lineAt(document.lineCount - 1).range.end)
+    if (length > MAX_LIVE_LENGTH) {
+      this.path.text = '$(list-tree) …'
+      this.path.tooltip = 'File too large for a live path — click to copy the path at the cursor'
     } else {
-      this.indent.hide()
+      const path = currentPath(editor)
+      this.path.text = `$(list-tree) ${truncate(path)}`
+      this.path.tooltip = `${path}\nClick to copy`
     }
+    this.path.show()
+  }
 
-    if (settings.get('statusBar.path', true)) {
-      const { document } = editor
-      const length = document.offsetAt(document.lineAt(document.lineCount - 1).range.end)
-      if (length > MAX_LIVE_LENGTH) {
-        this.path.text = '$(list-tree) …'
-        this.path.tooltip = 'File too large for a live path — click to copy the path at the cursor'
-      } else {
-        const path = currentPath(editor)
-        this.path.text = `$(list-tree) ${truncate(path)}`
-        this.path.tooltip = `${path}\nClick to copy`
-      }
-      this.path.show()
-    } else {
-      this.path.hide()
+  private async updateIndentation(): Promise<void> {
+    const editor = this.jsonEditor()
+    // JSON Lines records are single-line: no indentation to show.
+    if (!editor || isJsonLines(editor.document) || !config(editor.document).get('statusBar.indentation', true)) {
+      return this.indent.hide()
     }
+    const props = await editorConfig.propsFor(editor.document)
+    if (editor !== vscode.window.activeTextEditor) return
+    const fromEditorConfig = props.indentStyle !== undefined || props.indentSize !== undefined
+    this.indent.text = `$(symbol-namespace) ${describe(indentationFrom(props, editorIndentation(editor)))}`
+    this.indent.tooltip = `Jsonery: change indentation and re-indent the document${fromEditorConfig ? '\n(set by .editorconfig)' : ''}`
+    this.indent.show()
   }
 
   dispose(): void {

@@ -21,7 +21,7 @@ export async function unescape(): Promise<void> {
   const editor = activeEditor()
   if (!editor) return
   const { document } = editor
-  const settings = settingsFor(editor)
+  const settings = await settingsFor(editor)
 
   if (editor.selection.isEmpty && (isJsonDocument(document) || document.languageId === 'jsonl')) {
     const node = stringValueAtCursor(editor)

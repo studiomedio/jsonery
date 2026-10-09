@@ -1,7 +1,8 @@
 import { strict as assert } from 'node:assert'
 import { test } from 'node:test'
-import { formatText, indentFollowingLines, lineIndentAt, minify } from '../src/core/format'
-import { FOUR, TABS, TWO, dedent } from './helpers'
+import { applyEdits } from 'jsonc-parser'
+import { formatEdits, formatText, indentFollowingLines, lineIndentAt, minify } from '../src/core/format'
+import { FOUR, SMART, TABS, TWO, dedent } from './helpers'
 
 test('format pretty-prints minified JSON', () => {
   const result = formatText('{"a":1,"b":[1,2],"c":{}}', TWO)
@@ -65,4 +66,53 @@ test('lineIndentAt', () => {
   assert.equal(lineIndentAt(text, 0), '')
   assert.equal(lineIndentAt(text, 8), '    ')
   assert.equal(lineIndentAt(text, text.length - 1), '\t')
+})
+
+test('smart style keeps short containers on one line', () => {
+  const input = '{"name":"Ann","tags":["a","b"],"pos":{"x":1,"y":2},"long":["aaaaaaaaaaaaaaaaaaaa","bbbbbbbbbbbbbbbbbbbb","cccccccccccccccccccc","dddddddddd"]}'
+  const result = formatText(input, SMART)
+  assert.ok(result.ok)
+  assert.equal(result.text, dedent(`
+    {
+      "name": "Ann",
+      "tags": ["a", "b"],
+      "pos": { "x": 1, "y": 2 },
+      "long": [
+        "aaaaaaaaaaaaaaaaaaaa",
+        "bbbbbbbbbbbbbbbbbbbb",
+        "cccccccccccccccccccc",
+        "dddddddddd"
+      ]
+    }`))
+})
+
+test('smart style puts the whole document on one line when it fits', () => {
+  assert.deepEqual(formatText('{"a":[1,2],"b":{}}', SMART), { ok: true, text: '{ "a": [1, 2], "b": {} }' })
+})
+
+test('smart style respects maxLineWidth including indentation and comma', () => {
+  const input = '{"k":[1,2,3]}'
+  // `  "k": [1, 2, 3]` is 16 characters wide.
+  assert.equal((formatText(input, { ...SMART, maxLineWidth: 15 }) as { text: string }).text, '{\n  "k": [\n    1,\n    2,\n    3\n  ]\n}')
+  assert.equal((formatText(input, { ...SMART, maxLineWidth: 16 }) as { text: string }).text, '{\n  "k": [1, 2, 3]\n}')
+})
+
+test('smart style never inlines containers with comments', () => {
+  const input = '{\n  "a": [\n    1, // one\n    2\n  ],\n  "b": [1, 2]\n}'
+  const result = formatText(input, { ...SMART, maxLineWidth: 30 })
+  assert.ok(result.ok)
+  assert.equal(result.text, '{\n  "a": [\n    1, // one\n    2\n  ],\n  "b": [1, 2]\n}')
+})
+
+test('preserve style keeps line breaks', () => {
+  const result = formatText('{\n"a": [1,2], "b": 3\n}', { ...TWO, style: 'preserve' })
+  assert.deepEqual(result, { ok: true, text: '{\n  "a": [ 1, 2 ], "b": 3\n}' })
+})
+
+test('smart range formatting only collapses inside the range', () => {
+  const text = '{\n  "a": [\n    1\n  ],\n  "b": [\n    2\n  ]\n}'
+  const start = text.indexOf('"b"')
+  const result = formatEdits(text, SMART, { range: { offset: start, length: text.lastIndexOf(']') + 1 - start } })
+  assert.ok(result.ok)
+  assert.equal(applyEdits(text, result.edits), '{\n  "a": [\n    1\n  ],\n  "b": [2]\n}')
 })

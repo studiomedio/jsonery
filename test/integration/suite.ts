@@ -153,6 +153,99 @@ test('format on paste', async () => {
   }
 })
 
+async function withSetting(key: string, value: unknown, fn: () => Promise<void>, languageId?: string): Promise<void> {
+  const configuration = vscode.workspace.getConfiguration('jsonery', languageId ? { languageId } : undefined)
+  await configuration.update(key, value, vscode.ConfigurationTarget.Global, languageId ? true : undefined)
+  try {
+    await fn()
+  } finally {
+    await configuration.update(key, undefined, vscode.ConfigurationTarget.Global, languageId ? true : undefined)
+  }
+}
+
+test('repair JSON', async () => {
+  const editor = await open("{name: 'Ann', tags: [1, 2,], ok: True,}")
+  await vscode.commands.executeCommand('jsonery.repair')
+  assert.equal(editor.document.getText(), '{"name": "Ann", "tags": [1, 2], "ok": true}')
+  await closeAll()
+})
+
+test('smart format style', async () => {
+  await withSetting('format.style', 'smart', async () => {
+    const editor = await open('{"a":[1,2],"b":{"c":true},"d":"x"}')
+    await vscode.commands.executeCommand('jsonery.format')
+    assert.equal(editor.document.getText(), '{ "a": [1, 2], "b": { "c": true }, "d": "x" }')
+    await closeAll()
+  })
+})
+
+test('format style can be set per language', async () => {
+  await withSetting('format.style', 'smart', async () => {
+    const jsonc = await open('{"a":[1,2]}', 'jsonc')
+    await vscode.commands.executeCommand('jsonery.format')
+    assert.equal(jsonc.document.getText(), '{ "a": [1, 2] }')
+    await closeAll()
+    const json = await open('{"a":[1,2]}', 'json')
+    await vscode.commands.executeCommand('jsonery.format')
+    assert.equal(json.document.getText(), '{\n  "a": [\n    1,\n    2\n  ]\n}')
+    await closeAll()
+  }, 'jsonc')
+})
+
+test('JSON Lines: format and sort per record', async () => {
+  const editor = await open('{ "b": 1, "a": [1, 2] }\n\n{"d" : null, "c": "x"}\n', 'jsonl')
+  await vscode.commands.executeCommand('jsonery.format')
+  assert.equal(editor.document.getText(), '{"b":1,"a":[1,2]}\n\n{"d":null,"c":"x"}\n')
+  await vscode.commands.executeCommand('jsonery.sortKeys')
+  assert.equal(editor.document.getText(), '{"a":[1,2],"b":1}\n\n{"c":"x","d":null}\n')
+  await closeAll()
+})
+
+test('JSON Lines: convert to an array in a new editor', async () => {
+  const source = await open('{"a":1}\n{"a":2}\n', 'jsonl')
+  await vscode.commands.executeCommand('jsonery.linesToArray')
+  await pause(200)
+  const result = vscode.window.activeTextEditor!
+  assert.notEqual(result.document, source.document)
+  assert.equal(result.document.languageId, 'json')
+  assert.equal(result.document.getText(), '[\n  {\n    "a": 1\n  },\n  {\n    "a": 2\n  }\n]\n')
+  await vscode.commands.executeCommand('workbench.action.closeAllEditors')
+})
+
+test('.editorconfig sets indentation and line width', async () => {
+  const fs = await import('node:fs/promises')
+  const os = await import('node:os')
+  const path = await import('node:path')
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'jsonery-'))
+  await fs.writeFile(path.join(dir, '.editorconfig'), 'root = true\n[*.json]\nindent_style = space\nindent_size = 3\n')
+  const file = path.join(dir, 'data.json')
+  await fs.writeFile(file, '{"a":{"b":1}}')
+  try {
+    const document = await vscode.workspace.openTextDocument(vscode.Uri.file(file))
+    const editor = await vscode.window.showTextDocument(document)
+    await pause(300)
+    assert.equal(editor.options.tabSize, 3, 'editor options follow .editorconfig')
+    await vscode.commands.executeCommand('jsonery.format')
+    assert.equal(document.getText(), '{\n   "a": {\n      "b": 1\n   }\n}')
+    await closeAll()
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true })
+  }
+})
+
+test('large documents format quickly as one merged edit', async () => {
+  const items = Array.from({ length: 20000 }, (_, i) => ({ id: i, name: `item ${i}`, tags: ['a', 'b'], nested: { x: i / 3 } }))
+  const content = JSON.stringify(items)
+  const editor = await open(content)
+  const started = Date.now()
+  await vscode.commands.executeCommand('jsonery.format')
+  const elapsed = Date.now() - started
+  assert.equal(editor.document.getText(), JSON.stringify(items, null, 2))
+  assert.ok(elapsed < 10000, `formatting ${(content.length / 1e6).toFixed(1)} MB took ${elapsed} ms`)
+  console.log(`      (${(content.length / 1e6).toFixed(1)} MB formatted in ${elapsed} ms)`)
+  await closeAll()
+})
+
 export async function run(): Promise<void> {
   const failures: string[] = []
   for (const [name, fn] of cases) {

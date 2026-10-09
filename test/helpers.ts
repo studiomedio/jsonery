@@ -1,6 +1,14 @@
 import type { FormatSettings } from '../src/types/json'
 
-export const TWO: FormatSettings = { tabSize: 2, insertSpaces: true, eol: '\n', insertFinalNewline: false }
+export const TWO: FormatSettings = {
+  tabSize: 2,
+  insertSpaces: true,
+  eol: '\n',
+  insertFinalNewline: false,
+  style: 'expanded',
+  maxLineWidth: 80,
+}
+export const SMART: FormatSettings = { ...TWO, style: 'smart' }
 export const FOUR: FormatSettings = { ...TWO, tabSize: 4 }
 export const TABS: FormatSettings = { ...TWO, insertSpaces: false }
 
