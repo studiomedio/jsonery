@@ -32,6 +32,11 @@
     "escape",
     "beautify"
   ],
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#0785B8",
+    "theme": "dark"
+  },
   "main": "./dist/extension.js",
   "browser": "./dist/web/extension.js",
   "activationEvents": [

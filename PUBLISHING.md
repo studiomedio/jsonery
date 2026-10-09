@@ -24,8 +24,7 @@ The listing goes live at `https://marketplace.visualstudio.com/items?itemName=st
 
 - [ ] `npm run typecheck`, `npm test` and `npm run test:integration` pass.
 - [ ] `version` bumped and `CHANGELOG.md` updated.
-- [ ] `npx vsce ls` lists only `dist/`, README, CHANGELOG, LICENSE and `package.json`.
-- [ ] Icon added (`"icon"` in `package.json`, 128×128 PNG) before the first public release.
+- [ ] `npx vsce ls` lists only `dist/`, `images/icon.png`, README, CHANGELOG, LICENSE and `package.json`.
 
 ## Testing the package locally
 
